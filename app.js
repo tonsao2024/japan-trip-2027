@@ -208,7 +208,10 @@ function reorderTo(id, target) {
   if (id === target) return;
   action(async () => { requireEdit(); const rows = sorted(), p = rows.find(r => r.id === id), other = rows.find(r => r.id === target); if (!p || !other || p.day !== other.day) throw Error('ลากย้ายได้ภายในวันเดียวกัน เปลี่ยนวันผ่านฟอร์มแก้ไข'); const dayRows = rows.filter(r => r.day === p.day), start = dayRows[0].startMs, from = dayRows.findIndex(r => r.id === id), to = dayRows.findIndex(r => r.id === target); dayRows.splice(to, 0, dayRows.splice(from, 1)[0]); await service.saveSchedule([...rows.filter(r => r.day !== p.day), ...schedule(dayRows, start)], [], settings.scheduleVersion); });
 }
-const input = (label, field, value = '', type = 'text', attrs = '') => `<label>${label}<input name="${field}" type="${type}" value="${esc(value)}" ${attrs}></label>`;
+const input = (label, field, value = '', type = 'text', attrs = '') => {
+  const paused = type === 'file' && settings?.uploadsEnabled === false;
+  return `<label>${label}<input name="${field}" type="${type}" value="${esc(value)}" ${attrs} ${paused ? 'disabled' : ''}>${paused ? '<small class="muted">พักการอัปโหลดไว้ชั่วคราว บันทึกรายการโดยไม่แนบรูปได้</small>' : ''}</label>`;
+};
 function openPlan(row = null) {
   if (!canEdit()) return;
   editorState = { kind: 'plan', row: row ? structuredClone(row) : null, version: settings.scheduleVersion, snapshot: structuredClone(sorted()) };
