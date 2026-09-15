@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#144b52"><meta name="description" content="วางแผนทริปญี่ปุ่น จัดเวลา และหารค่าใช้จ่ายกับเพื่อนแบบเรียลไทม์">
+  <title>Fuji Trip — Japan, together.</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="./style.css">
+  <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+<div id="snow" aria-hidden="true"></div>
+<div class="shell">
+  <aside class="sidebar">
+    <a class="brand" href="./" aria-label="Fuji Trip หน้าหลัก"><span class="fuji" aria-hidden="true"><i></i></span><span>fuji<span class="brand-light">trip</span><small>JAPAN / 2027</small></span></a>
+    <p class="eyebrow nav-label">OUR LITTLE ADVENTURE</p>
+    <nav aria-label="เมนูหลัก">
+      <button class="nav active" data-tab="plans"><span>◷</span> แผนการเดินทาง <small>01</small></button>
+      <button class="nav" data-tab="costs"><span>¥</span> ค่าใช้จ่าย <small>02</small></button>
+      <button class="nav" data-tab="dashboard"><span>▥</span> สรุปและหารเงิน <small>03</small></button>
+      <button class="nav" data-tab="admin" id="admin-nav" hidden><span>⚙</span> หลังบ้าน <small>04</small></button>
+    </nav>
+    <div class="sidebar-note"><span class="fuji big" aria-hidden="true"><i></i></span><b>A little closer to Fuji.</b><p>ทุกช่วงเวลาดีขึ้น<br>เมื่อเราเดินทางด้วยกัน</p></div>
+    <div class="side-footer"><span id="mode-badge" class="badge">อ่านอย่างเดียว</span><button id="edit-toggle">ปลดล็อกแก้ไข</button><button id="logout" class="quiet" hidden>ออกจากระบบ</button></div>
+  </aside>
+  <main>
+    <header class="topbar"><span class="breadcrumb">OUR TRIP <span>/</span> JAPAN 2027</span><div class="tools"><span id="sync-status" role="status">รอเชื่อมต่อ</span><button id="snow-toggle" class="icon" aria-label="เปิดปิดหิมะ" aria-pressed="true">❄</button><button id="theme-toggle" class="icon" aria-label="สลับธีม" aria-pressed="false">◐</button></div></header>
+    <div id="demo-banner" class="notice" hidden>โหมดทดลอง • ข้อมูลเก็บเฉพาะเบราว์เซอร์ • รหัสผ่านชั้นที่ 2: demo1234 <a href="./">เชื่อมต่อข้อมูลจริง ↗</a></div>
+    <section id="welcome" class="notice"><b>พร้อมเดินทางไปด้วยกัน?</b> เข้าสู่ระบบเพื่อดูข้อมูลทริป <button id="login-open">เข้าสู่ระบบ</button> <a href="?demo=1">เปิดโหมดทดลอง ↗</a></section>
+    <section class="page-heading"><div><p class="eyebrow">THE JAPAN CHAPTER</p><h1 id="trip-title">Japan, together<span class="accent">.</span></h1><p class="muted">วางแผน เก็บความทรงจำ และแชร์ทุกค่าใช้จ่าย</p></div><div class="clock-pair"><div><span>BKK <small>THAILAND</small></span><b id="bkk">--:--:--</b><small id="bkk-date"></small></div><span class="clock-divider">↗</span><div><span>TYO <small>JAPAN</small></span><b id="tokyo">--:--:--</b><small id="tokyo-date"></small></div></div></section>
+    <section id="view-plans" class="view">
+      <div class="section-line"><h2>แผนการเดินทาง <span class="small-label">ITINERARY</span></h2><button class="primary edit-only" id="add-plan" disabled>＋ เพิ่มสถานที่</button></div>
+      <div class="filter-bar"><div class="segmented"><button data-filter="next" class="active">◷ Up Next</button><button data-filter="days">เลือกวัน</button><button data-filter="all">ทั้งหมด</button></div><span id="plan-count" class="muted"></span></div>
+      <div id="day-filters" class="day-filters" hidden></div>
+      <div class="itinerary-grid"><div><div id="current-stop" class="current-stop" hidden></div><div id="plan-list" class="timeline"><div class="empty">แผนการเดินทางจะปรากฏที่นี่เมื่อเชื่อมต่อทริป</div></div></div><aside class="map-panel"><div class="section-line"><h3>มองทริปจากบนแผนที่</h3><span class="badge">JAPAN</span></div><div id="map" aria-label="แผนที่สถานที่ในทริป"></div><p class="map-caption">แตะหมุดเพื่อดูสถานที่ · เวลาในแผนเป็นเวลาญี่ปุ่น</p><div class="trip-tip"><span>✳</span><div><b>เผื่อเวลาให้ความทรงจำ</b><p>เวลาเดินทางจะนับต่อจากแต่ละสถานที่ และปรับตามแผนให้อัตโนมัติ</p></div></div></aside></div>
+    </section>
+    <section id="view-costs" class="view" hidden><div class="section-line"><h2>ค่าใช้จ่ายของเรา</h2><button class="primary edit-only" id="add-cost" disabled>＋ เพิ่มค่าใช้จ่าย</button></div><p class="muted">แยกตามหมวดหมู่ · แตะเพื่อดูและแก้ไขรายการ</p><div id="cost-list"></div></section>
+    <section id="view-dashboard" class="view" hidden><div class="section-line"><h2>ทุกบาท ชัดเจน</h2><button id="export-overview">↓ บันทึกภาพรวม PNG</button></div><div id="overview-export" class="export-area"><div class="section-line"><h3>Japan 2027 · ภาพรวมทริป</h3><span class="muted">THB • รวมค่าธรรมเนียม</span></div><div id="stats" class="stats"></div><div class="dashboard-grid"><div class="panel"><h3>ใช้ไปกับอะไรบ้าง</h3><div class="chart-box"><canvas id="category-chart"></canvas></div></div><div class="panel"><h3>ยอดใช้จ่ายรายคน</h3><div class="chart-box"><canvas id="people-chart"></canvas></div></div></div><div class="panel"><h3>สรุปบัตรเครดิต</h3><div id="card-summary"></div></div><div class="panel"><h3>ใครโอนให้ใคร</h3><p class="muted">ข้อเสนอชำระยอดคงเหลือ ยังไม่ได้บันทึกว่าโอนเงินจริง</p><div id="settlements"></div></div></div><div class="section-line"><label>เลือกเพื่อน <select id="person-select"></select></label><button id="export-person">↓ บันทึกรายบุคคล PNG</button></div><div id="person-export" class="export-area"></div></section>
+    <section id="view-admin" class="view" hidden><div class="section-line"><h2>หลังบ้าน / ตารางแผน</h2><button id="admin-add" class="primary edit-only" disabled>＋ เพิ่มแถว</button></div><p class="muted">กดแก้ไขแถวเพื่อเปลี่ยนข้อมูล • เวลาเริ่มใหม่จะเลื่อนสถานที่ถัดไปในวันเดียวกัน • ปุ่ม ↑ ↓ ใช้ได้บนมือถือ</p><div class="table-wrap"><table><thead><tr><th>วัน / ลำดับ</th><th>สถานที่</th><th>เริ่ม (Tokyo)</th><th>พัก / เดินทาง</th><th>จัดการ</th></tr></thead><tbody id="admin-rows"></tbody></table></div><form id="settings-form" class="panel"><h3>ตั้งค่าทริป</h3><label>ชื่อทริป<input name="title" required maxlength="80"></label><label>เรทใหม่: 1 JPY = กี่ THB<input name="exchangeRate" type="number" min="0.000001" max="100" step="0.000001" required></label><p class="muted">ใช้กับบิลใหม่ บิลเก่าเก็บเรทเดิมไว้เสมอ</p><label>สมาชิก (หนึ่งคนต่อบรรทัด รูปแบบ id:ชื่อ)<textarea name="members" rows="5" required></textarea></label><p class="muted">เก็บ id สมาชิกเดิมไว้เพื่อรักษาประวัติ ชื่อที่แสดงแก้ไขได้</p><button class="primary edit-only" type="submit" disabled>ยืนยันด้วยรหัสผ่านชั้นที่ 2</button></form></section>
+    <footer>FUJI TRIP <span>Made for the moments in between.</span><button id="admin-open" class="quiet" hidden>จัดการทริป</button></footer>
+  </main>
+</div>
+<dialog id="editor"><form id="editor-form"><div class="section-line"><h2 id="editor-title"></h2><button type="button" data-close="editor" class="icon" aria-label="ปิด">×</button></div><div id="editor-fields"></div><p id="form-error" class="error" role="alert"></p><div class="dialog-actions"><button type="button" data-close="editor">ยกเลิก</button><button class="primary" id="save-button" type="submit">บันทึก</button></div></form></dialog>
+<dialog id="auth-dialog"><form id="auth-form"><div class="section-line"><h2>เข้าสู่ทริป</h2><button type="button" data-close="auth-dialog" class="icon" aria-label="ปิด">×</button></div><p class="muted">ใช้บัญชีที่ผู้ดูแลเพิ่มไว้ใน Firebase</p><label>อีเมล<input name="email" type="email" autocomplete="username" required></label><label>รหัสผ่านบัญชี<input name="password" type="password" autocomplete="current-password" required></label><p id="auth-error" class="error" role="alert"></p><button type="submit" class="primary">เข้าสู่ระบบ</button></form></dialog>
+<dialog id="pin-dialog"><form id="pin-form"><h2 id="pin-title">ปลดล็อกโหมดแก้ไข</h2><p class="muted">PIN เป็นล็อกของอุปกรณ์นี้ และจำไว้ใน localStorage สิทธิ์เขียนจริงขึ้นกับบัญชี Firebase</p><label>PIN (ตัวเลข 6–12 หลัก)<input name="pin" type="password" inputmode="numeric" pattern="[0-9]{6,12}" minlength="6" maxlength="12" autocomplete="off" required></label><p id="pin-error" class="error" role="alert"></p><div class="dialog-actions"><button type="button" data-close="pin-dialog">ยกเลิก</button><button type="submit" class="primary">ปลดล็อก</button></div></form></dialog>
+<dialog id="security-dialog"><form id="security-form"><h2>ยืนยันการเปลี่ยนแปลง</h2><p id="security-reason"></p><label>รหัสผ่านบัญชี (ชั้นที่ 2)<input name="password" type="password" autocomplete="current-password" required></label><p id="security-error" class="error" role="alert"></p><div class="dialog-actions"><button type="button" data-close="security-dialog">ยกเลิก</button><button type="submit" class="primary">ยืนยัน</button></div></form></dialog>
+<dialog id="alert-dialog"><span class="fuji big" aria-hidden="true"><i></i></span><h2>อีก 15 นาที ถึงเวลาไปต่อ</h2><p id="alert-message"></p><button data-close="alert-dialog" class="primary">รับทราบ</button></dialog>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden><span class="fuji" aria-hidden="true"><i></i></span><span id="toast-message"></span></div>
+<noscript>แอปนี้ต้องเปิดใช้งาน JavaScript</noscript>
+</body></html>

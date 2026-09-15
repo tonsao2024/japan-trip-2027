@@ -1,0 +1,95 @@
+{
+  "_notes": {
+    "usage": "Each top-level collection maps document IDs to document fields. Do not import _notes as a collection. updatedAt string below represents a Firestore Timestamp; actual app uses serverTimestamp().",
+    "money": "JPY integer yen; THB integer satang. exchangeRate = THB per 1 JPY.",
+    "day": "Logical Tokyo itinerary day. startMs/endMs are UTC epoch milliseconds.",
+    "roles": "members document ID must be a real Firebase Auth UID. Trip participant IDs are separate."
+  },
+  "settings": {
+    "trip": {
+      "title": "Japan, together.",
+      "exchangeRate": 0.24,
+      "members": [
+        {
+          "id": "may",
+          "name": "เมย์"
+        },
+        {
+          "id": "bank",
+          "name": "แบงค์"
+        },
+        {
+          "id": "ploy",
+          "name": "พลอย"
+        },
+        {
+          "id": "ton",
+          "name": "ต้น"
+        }
+      ],
+      "memberIds": [
+        "may",
+        "bank",
+        "ploy",
+        "ton"
+      ],
+      "scheduleVersion": 0,
+      "revision": 1
+    }
+  },
+  "members": {
+    "REPLACE_WITH_FIREBASE_AUTH_UID": {
+      "role": "admin"
+    }
+  },
+  "plans": {
+    "plan_001": {
+      "title": "Lake Kawaguchi",
+      "location": "Kawaguchiko",
+      "day": "2027-02-12",
+      "order": 0,
+      "startMs": 1802390400000,
+      "endMs": 1802394000000,
+      "durationMin": 60,
+      "travelMin": 30,
+      "lat": 35.517,
+      "lng": 138.751,
+      "notes": "เดินเล่นริมทะเลสาบ",
+      "imageUrl": "",
+      "imagePath": "",
+      "revision": 1,
+      "updatedAt": "2027-01-01T00:00:00Z",
+      "updatedBy": "REPLACE_WITH_FIREBASE_AUTH_UID"
+    }
+  },
+  "costs": {
+    "cost_001": {
+      "title": "อาหารกลางวัน",
+      "planId": "plan_001",
+      "category": "food",
+      "currency": "JPY",
+      "baseMinor": 10000,
+      "feePercent": 2.5,
+      "feeMinor": 250,
+      "totalMinor": 10250,
+      "exchangeRate": 0.24,
+      "payerId": "may",
+      "paymentMethod": "card",
+      "cardName": "Travel card",
+      "shares": {
+        "may": 4000,
+        "bank": 2084,
+        "ploy": 2083,
+        "ton": 2083
+      },
+      "fixedShares": {
+        "may": 4000
+      },
+      "receiptUrl": "",
+      "receiptPath": "",
+      "revision": 1,
+      "updatedAt": "2027-01-01T00:00:00Z",
+      "updatedBy": "REPLACE_WITH_FIREBASE_AUTH_UID"
+    }
+  }
+}

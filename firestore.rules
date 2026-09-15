@@ -1,0 +1,89 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function member() { return request.auth != null && exists(/databases/$(database)/documents/members/$(request.auth.uid)); }
+    function role() { return get(/databases/$(database)/documents/members/$(request.auth.uid)).data.role; }
+    function editor() { return member() && role() in ['editor', 'admin']; }
+    function sensitive() { return member() && role() == 'admin' && request.time.toMillis() / 1000 - request.auth.token.auth_time < 120; }
+    function config() { return get(/databases/$(database)/documents/settings/trip).data; }
+    function versionChanged() { return getAfter(/databases/$(database)/documents/settings/trip).data.scheduleVersion == config().scheduleVersion + 1; }
+    function text(v, max) { return v is string && v.size() <= max; }
+    function money(v) { return v is int && v >= 0 && v <= 1000000000000; }
+    function image(v) { return text(v, 2048) && (v == '' || v.matches('https://.*')); }
+    function metadata(d) { return d.updatedBy == request.auth.uid && d.updatedAt == request.time && d.revision is int; }
+    function validPlan(d) {
+      return d.keys().hasAll(['title','location','day','order','startMs','endMs','durationMin','travelMin','lat','lng','notes','imageUrl','imagePath','revision','updatedAt','updatedBy'])
+        && d.keys().hasOnly(['title','location','day','order','startMs','endMs','durationMin','travelMin','lat','lng','notes','imageUrl','imagePath','revision','updatedAt','updatedBy'])
+        && text(d.title,120) && d.title.size()>0 && text(d.location,160) && text(d.notes,2000)
+        && d.day is string && d.day.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}')
+        && d.order is int && d.order >= 0 && d.order < 450
+        && d.startMs is int && d.startMs > 0 && d.startMs < 4102444800000
+        && d.durationMin is int && d.durationMin >= 1 && d.durationMin <= 1440
+        && d.travelMin is int && d.travelMin >= 0 && d.travelMin <= 1440
+        && d.endMs == d.startMs + d.durationMin * 60000
+        && ((d.lat == null && d.lng == null) || (d.lat is number && d.lng is number && d.lat >= -90 && d.lat <= 90 && d.lng >= -180 && d.lng <= 180))
+        && image(d.imageUrl) && text(d.imagePath,256) && metadata(d);
+    }
+    function share(m,k,i) { return k.size() > i ? m[k[i]] : 0; }
+    function validShare(m,k,i) { return k.size() <= i || money(m[k[i]]); }
+    function validShares(m) {
+      let k = m.keys();
+      return k.size() >= 1 && k.size() <= 20 && k.hasOnly(config().memberIds)
+        && validShare(m,k,0) && validShare(m,k,1) && validShare(m,k,2) && validShare(m,k,3) && validShare(m,k,4)
+        && validShare(m,k,5) && validShare(m,k,6) && validShare(m,k,7) && validShare(m,k,8) && validShare(m,k,9)
+        && validShare(m,k,10) && validShare(m,k,11) && validShare(m,k,12) && validShare(m,k,13) && validShare(m,k,14)
+        && validShare(m,k,15) && validShare(m,k,16) && validShare(m,k,17) && validShare(m,k,18) && validShare(m,k,19);
+    }
+    function sumShares(m) {
+      let k = m.keys();
+      return share(m,k,0)+share(m,k,1)+share(m,k,2)+share(m,k,3)+share(m,k,4)+share(m,k,5)+share(m,k,6)+share(m,k,7)+share(m,k,8)+share(m,k,9)+share(m,k,10)+share(m,k,11)+share(m,k,12)+share(m,k,13)+share(m,k,14)+share(m,k,15)+share(m,k,16)+share(m,k,17)+share(m,k,18)+share(m,k,19);
+    }
+    function validCost(d) {
+      return d.keys().hasAll(['title','planId','category','currency','baseMinor','feePercent','feeMinor','totalMinor','exchangeRate','payerId','paymentMethod','cardName','shares','fixedShares','receiptUrl','receiptPath','revision','updatedAt','updatedBy'])
+        && d.keys().hasOnly(['title','planId','category','currency','baseMinor','feePercent','feeMinor','totalMinor','exchangeRate','payerId','paymentMethod','cardName','shares','fixedShares','receiptUrl','receiptPath','revision','updatedAt','updatedBy'])
+        && text(d.title,120) && d.title.size()>0 && (d.planId == null || text(d.planId,128))
+        && d.category in ['food','transport','stay','activity','shopping','other'] && d.currency in ['JPY','THB']
+        && money(d.baseMinor) && d.baseMinor > 0 && money(d.totalMinor) && money(d.feeMinor)
+        && d.feePercent is number && d.feePercent >= 0 && d.feePercent <= 100
+        && d.feeMinor == math.floor(d.baseMinor * d.feePercent / 100 + 0.5)
+        && d.totalMinor == d.baseMinor + d.feeMinor
+        && d.exchangeRate is number && d.exchangeRate > 0 && d.exchangeRate <= 100
+        && d.payerId in config().memberIds
+        && d.paymentMethod in ['cash','card'] && text(d.cardName,80)
+        && (d.paymentMethod == 'card' ? d.cardName.size()>0 : d.feeMinor == 0 && d.feePercent == 0 && d.cardName == '')
+        && d.shares is map && validShares(d.shares) && sumShares(d.shares) == d.totalMinor
+        && d.fixedShares is map && d.fixedShares.keys().hasOnly(d.shares.keys())
+        && image(d.receiptUrl) && text(d.receiptPath,256) && metadata(d);
+    }
+    match /members/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false; // Manage account roles using Firebase Console / trusted Admin SDK only.
+    }
+    match /plans/{id} {
+      allow read: if member();
+      allow create: if editor() && validPlan(request.resource.data) && request.resource.data.revision == 1 && versionChanged();
+      allow update: if editor() && validPlan(request.resource.data) && request.resource.data.revision == resource.data.revision + 1 && versionChanged();
+      allow delete: if sensitive() && versionChanged();
+    }
+    match /costs/{id} {
+      allow read: if member();
+      allow create: if editor() && validCost(request.resource.data) && request.resource.data.revision == 1 && request.resource.data.exchangeRate == config().exchangeRate;
+      allow update: if editor() && validCost(request.resource.data) && request.resource.data.revision == resource.data.revision + 1 && request.resource.data.exchangeRate == resource.data.exchangeRate;
+      allow delete: if sensitive();
+    }
+    match /settings/trip {
+      allow read: if member();
+      allow create, delete: if false;
+      allow update: if editor() && (
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['scheduleVersion']) && request.resource.data.scheduleVersion == resource.data.scheduleVersion + 1)
+        || (sensitive() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title','exchangeRate','members','memberIds','revision','updatedAt'])
+          && text(request.resource.data.title,80) && request.resource.data.title.size() > 0
+          && request.resource.data.exchangeRate is number && request.resource.data.exchangeRate > 0 && request.resource.data.exchangeRate <= 100
+          && request.resource.data.members is list && request.resource.data.members.size() >= 1 && request.resource.data.members.size() <= 20
+          && request.resource.data.memberIds is list && request.resource.data.memberIds.size() == request.resource.data.members.size()
+          && request.resource.data.memberIds.hasAll(resource.data.memberIds)
+          && request.resource.data.revision == resource.data.revision + 1 && request.resource.data.updatedAt == request.time)
+      );
+    }
+  }
+}
